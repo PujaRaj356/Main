@@ -1,4 +1,4 @@
-import os
+
 import time
 import uuid
 from collections import defaultdict, deque
@@ -14,7 +14,6 @@ ALLOWED_ORIGIN = "https://app-qade20.example.com"
 RATE_LIMIT = 14
 WINDOW_SECONDS = 10
 
-# Per-client request timestamps
 client_requests = defaultdict(deque)
 
 
@@ -33,23 +32,21 @@ async def cors_middleware(request: Request, call_next):
     origin = request.headers.get("origin")
 
     if request.method == "OPTIONS" and request.url.path == "/ping":
-        if origin == ALLOWED_ORIGIN:
-            response = Response(status_code=204)
-            response.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN
-            response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = (
-                "X-Request-ID, X-Client-ID, Content-Type"
-            )
-            response.headers["Access-Control-Max-Age"] = "600"
-            response.headers["Vary"] = "Origin"
-            return response
+        if origin != ALLOWED_ORIGIN:
+            return Response(status_code=403)
 
-        return Response(status_code=403)
-
-    response = await call_next(request)
+        response = Response(status_code=204)
+    else:
+        response = await call_next(request)
 
     if origin == ALLOWED_ORIGIN:
         response.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = (
+            "X-Request-ID, X-Client-ID, Content-Type"
+        )
+        response.headers["Access-Control-Expose-Headers"] = "X-Request-ID"
+        response.headers["Access-Control-Max-Age"] = "600"
         response.headers["Vary"] = "Origin"
 
     return response
